@@ -1,10 +1,15 @@
 import { genreOptions } from "../genres";
 import type { Genre } from "../types/event";
+import type { DateFilter } from "../types/filters";
+import { getAmsterdamDate } from "../filterEvents";
 
 type EventFiltersProps = {
   selectedGenres: Genre[];
   onToggleGenre: (genre: Genre) => void;
   onReset: () => void;
+  dateFilter: DateFilter;
+  onDateFilterChange: (filter: DateFilter) => void;
+  onResetAll: () => void;
   hasResults: boolean;
 };
 
@@ -12,6 +17,9 @@ export default function EventFilters({
   selectedGenres,
   onToggleGenre,
   onReset,
+  dateFilter,
+  onDateFilterChange,
+  onResetAll,
   hasResults,
 }: EventFiltersProps) {
   return (
@@ -42,7 +50,55 @@ export default function EventFilters({
         </div>
       </fieldset>
       <p className="filter-help">Meerdere keuzes mogelijk. House is inclusief deep house.</p>
-      {!hasResults && <p role="status">Geen feesten gevonden. Kies andere genres of bekijk alle genres.</p>}
+      <fieldset className="date-filters">
+        <legend>Datum</legend>
+        <div className="date-options">
+          <label className="date-field" htmlFor="date-period">
+            Wanneer?
+            <select
+              id="date-period"
+              value={dateFilter.kind}
+              onChange={(event) => {
+                const kind = event.target.value as DateFilter["kind"];
+                onDateFilterChange(kind === "custom"
+                  ? { kind, date: getAmsterdamDate() }
+                  : { kind });
+              }}
+            >
+              <option value="all">Alle datums</option>
+              <option value="today">Vandaag</option>
+              <option value="tomorrow">Morgen</option>
+              <option value="weekend">Dit weekend</option>
+              <option value="custom">Kies een datum</option>
+            </select>
+          </label>
+          {dateFilter.kind === "custom" && (
+            <label className="date-field" htmlFor="event-date">
+              Welke datum?
+              <input
+                id="event-date"
+                type="date"
+                required
+                value={dateFilter.date}
+                onChange={(event) => onDateFilterChange({ kind: "custom", date: event.target.value })}
+              />
+            </label>
+          )}
+        </div>
+        <p className="filter-help">De startdatum in Nederland telt. Weekend: vrijdag t/m zondag.</p>
+      </fieldset>
+      {!hasResults && (
+        <div className="empty-results">
+          <p role="status">
+            {dateFilter.kind === "custom" && !dateFilter.date
+              ? "Kies een datum om feesten te bekijken."
+              : "Geen feesten gevonden. Pas je datum of genres aan."}
+          </p>
+          <button type="button" className="reset-filters" onClick={onResetAll}>
+            Wis alle filters
+          </button>
+        </div>
+      )}
     </section>
   );
 }
