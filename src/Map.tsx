@@ -1,9 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Map as MapLibreMap, NavigationControl } from "maplibre-gl";
+import { Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { createEventPopup } from "./createEventPopup";
+import type { Event as PartyEvent } from "./types/event";
 
-export default function Map() {
+type MapProps = {
+  events: readonly PartyEvent[];
+};
+
+export default function Map({ events }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<MapLibreMap | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -15,6 +22,7 @@ export default function Map() {
       zoom: 6.8,
     });
 
+    mapInstance.current = map;
     map.addControl(new NavigationControl());
 
     // Pas de kleuren aan zodra de kaartstijl beschikbaar is.
@@ -40,16 +48,33 @@ export default function Map() {
       }
     });
 
-    return () => map.remove();
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+    };
   }, []);
 
-  return (
-    <div
-      ref={mapContainer}
-      style={{
-        width: "100%",
-        height: "100vh",
-      }}
-    />
-  );
+  // Alleen de pins veranderen bij een filterwijziging; de kaart blijft staan.
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    const markers = events.map((event) => {
+      const popup = new Popup({ maxWidth: "300px", className: "event-popup-container" })
+        .setDOMContent(createEventPopup(event));
+
+      const marker = new Marker({ color: "#6d28d9" })
+        .setLngLat([event.longitude, event.latitude])
+        .setPopup(popup)
+        .addTo(map);
+
+      marker.getElement().setAttribute("aria-label", `${event.name} in ${event.city}`);
+      marker.getElement().setAttribute("title", `${event.name} · ${event.city}`);
+      return marker;
+    });
+
+    return () => markers.forEach((marker) => marker.remove());
+  }, [events]);
+
+  return <div ref={mapContainer} className="event-map" aria-label="Kaart met fictieve feesten in Nederland" />;
 }

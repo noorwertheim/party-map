@@ -76,12 +76,12 @@ Controleer of de standaard Vite-pagina opent op de URL die de terminal toont (me
 
 ### Fase 2 — Kaart toevoegen (ca. 3–6 uur)
 
-- [ ] MapLibre installeren.
-- [ ] `src/Map.tsx` maken.
-- [ ] Kaart centreren op Nederland.
-- [ ] Zoom- en navigatieknoppen toevoegen.
-- [ ] De standaard Vite-pagina vervangen door de kaart.
-- [ ] CSS aanpassen zodat de kaart het scherm vult.
+- [x] MapLibre installeren.
+- [x] `src/Map.tsx` maken.
+- [x] Kaart centreren op Nederland.
+- [x] Zoom- en navigatieknoppen toevoegen.
+- [x] De standaard Vite-pagina vervangen door de kaart.
+- [x] CSS aanpassen zodat de kaart het scherm vult.
 - [ ] Op desktop en telefoon testen.
 
 ```bash
@@ -141,11 +141,11 @@ Verwijder eventueel beperkende standaardstijlen uit `src/App.css` (of verwijder 
 
 ### Fase 3 — Fictieve evenementen en filters (ca. 1 dag)
 
-- [ ] Maak `src/data/events.ts` met circa 20 fictieve evenementen in meerdere Nederlandse steden.
-- [ ] Definieer een TypeScript-type `Event` met ID, naam, venue, stad, starttijd, eindtijd (optioneel), genres, coördinaten en URL (optioneel).
-- [ ] Toon elk evenement als marker op de kaart.
-- [ ] Toon een popup/detailkaart bij een klik.
-- [ ] Voeg een genre-filter toe; meerdere genres kunnen selecteerbaar zijn.
+- [x] Maak `src/data/events.ts` met circa 20 fictieve evenementen in meerdere Nederlandse steden.
+- [x] Definieer een TypeScript-type `Event` met ID, naam, venue, stad, starttijd, eindtijd (optioneel), genres, coördinaten en URL (optioneel).
+- [x] Toon elk evenement als marker op de kaart.
+- [x] Toon een popup/detailkaart bij een klik.
+- [x] Voeg een genre-filter toe; meerdere genres kunnen selecteerbaar zijn.
 - [ ] Voeg een datumfilter toe.
 - [ ] Zorg dat markers direct reageren op filterwijzigingen.
 - [ ] Test de mobiele weergave.
@@ -170,6 +170,8 @@ Voorbeeld van een fictief evenement:
 
 ### Fase 4 — Echte evenementdata (ca. 1–3 dagen of langer)
 
+- [x] Vraag Resident Advisor om toestemming/API-toegang (aangevraagd door de gebruiker).
+- [ ] Bevestig toegang en afspraken voor ophalen en weergeven; toestemming is nog niet bevestigd.
 - [ ] Onderzoek welke organisatoren, ticketplatforms of evenementenplatforms een officiële API, feed of toestemming voor hergebruik bieden.
 - [ ] Vergelijk dekking en voorwaarden van verschillende bronnen.
 - [ ] Maak een uniform datamodel en genre-taxonomie.
@@ -249,7 +251,7 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 ## 7. Belangrijkste ontwerpkeuzes en open vragen
 
 - **Geografie:** start met Nederland, maar ondersteun kaartnavigatie wereldwijd. Breid evenementdekking pas uit als er bronnen beschikbaar zijn.
-- **Genres:** bepaal hoe subgenres aan hoofdgenres gekoppeld worden (bijv. deep house onder house).
+- **Genres:** house omvat ook deep house. Bij meerdere geselecteerde genres is één overeenkomst voldoende; zonder selectie zijn alle genres zichtbaar.
 - **Datum/tijd:** sla tijdstippen op met tijdzone; let op feesten die na middernacht doorgaan.
 - **Meerdere events op één locatie:** bepaal hoe je overlappende pins presenteert.
 - **Schaalbaarheid:** haal later alleen evenementen op binnen het zichtbare kaartgebied en relevante tijdvenster.
@@ -258,14 +260,18 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 
 ## 8. Eerstvolgende actie
 
-**Huidige stap: fase 2 — MapLibre toevoegen.**
+**Huidige stap: fase 3 — genre-filter controleren, daarna datumfilters toevoegen.**
 
-1. Controleer dat de Vite-app lokaal draait.
-2. Installeer `maplibre-gl`.
-3. Voeg `src/Map.tsx` toe met de kaart van Nederland.
-4. Vervang `src/App.tsx` en pas de CSS aan.
-5. Start `npm run dev` en controleer dat de kaart werkt.
-6. Commit de werkende kaart.
+De kaart werkt volgens de browsercontrole van de gebruiker. Het kaartcontrast is daarna aangepast. Er zijn nu 20 fictieve feesten in 20 steden toegevoegd, met paarse pins en popups. Het genre-filter ondersteunt meerdere selecties, house inclusief deep house en een reset naar alle genres. De teller toont het aantal bijpassende feesten; de kaartpositie blijft behouden wanneer de pins veranderen. De build, datacontroles en controles van de filterlogica slagen. Pins, popups en filters moeten nog visueel worden gecontroleerd, ook op mobiel.
+
+1. Open de lokaal draaiende app en kies Techno: de teller hoort 6 van 20 aan te geven.
+2. Kies daarnaast House: de teller hoort 15 van 20 aan te geven, zonder dubbele pins.
+3. Klik op Alle genres: alle 20 feesten worden weer getoond.
+4. Controleer dat de kaartpositie behouden blijft en pins en popups correct reageren.
+5. Voeg vervolgens de datumfilters toe, gecombineerd met de genreselectie.
+6. Test de mobiele weergave en commit de werkende wijzigingen.
+
+Resident Advisor is de voorkeursbron voor de API. De gebruiker heeft toestemming gevraagd; in afwachting daarvan blijven we fictieve data gebruiken.
 
 **Eerste mijlpaal:** een interactieve kaart van Nederland in de browser.
 
