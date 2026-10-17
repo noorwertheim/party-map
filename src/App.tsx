@@ -2,24 +2,31 @@ import { useEffect, useState } from "react";
 import Map from "./Map";
 import EventFilters from "./components/EventFilters";
 import { events } from "./data/events";
-import { filterEventsByDate, filterEventsByGenres, getAmsterdamDate } from "./filterEvents";
+import { filterEventsByDate, filterEventsByGenres } from "./filterEvents";
 import type { Genre } from "./types/event";
 import type { DateFilter } from "./types/filters";
 
 function App() {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>({ kind: "all" });
-  const [today, setToday] = useState(() => getAmsterdamDate());
+  const [now, setNow] = useState(() => new Date());
   const visibleEvents = filterEventsByDate(
     filterEventsByGenres(events, selectedGenres),
     dateFilter,
-    today,
+    now,
   );
 
-  // Houd vandaag actueel wanneer de app na middernacht open blijft staan.
+  // Houd Now en de kalenderdatum actueel, ook na terugkeer naar de app.
   useEffect(() => {
-    const timer = window.setInterval(() => setToday(getAmsterdamDate()), 60_000);
-    return () => window.clearInterval(timer);
+    const refreshTime = () => setNow(new Date());
+    const timer = window.setInterval(refreshTime, 30_000);
+    window.addEventListener("focus", refreshTime);
+    document.addEventListener("visibilitychange", refreshTime);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshTime);
+      document.removeEventListener("visibilitychange", refreshTime);
+    };
   }, []);
 
   function toggleGenre(genre: Genre) {
@@ -44,7 +51,10 @@ function App() {
         onToggleGenre={toggleGenre}
         onReset={() => setSelectedGenres([])}
         dateFilter={dateFilter}
-        onDateFilterChange={setDateFilter}
+        onDateFilterChange={(filter) => {
+          setNow(new Date());
+          setDateFilter(filter);
+        }}
         onResetAll={() => {
           setSelectedGenres([]);
           setDateFilter({ kind: "all" });

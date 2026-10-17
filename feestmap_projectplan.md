@@ -20,7 +20,7 @@ De app start met evenementen in heel Nederland, maar de architectuur moet later 
 2. Pins voor evenementen op basis van lengte- en breedtegraad.
 3. Klik/tik op een pin voor naam, locatie, datum, tijd, genres en link naar tickets of organisator.
 4. Filter op muziekgenre (bijv. house, techno, disco, drum & bass).
-5. Filter op datum (vandaag, morgen, weekend of specifieke datum).
+5. Filter op datum (Now/nu bezig, vandaag, morgen, weekend of specifieke datum).
 6. Responsive layout voor telefoon en desktop.
 
 **Bewust buiten de MVP:** gebruikersaccounts, vrienden, chats, reviews, aanbevelingsalgoritmen, betalingen en notificaties.
@@ -147,6 +147,7 @@ Verwijder eventueel beperkende standaardstijlen uit `src/App.css` (of verwijder 
 - [x] Toon een popup/detailkaart bij een klik.
 - [x] Voeg een genre-filter toe; meerdere genres kunnen selecteerbaar zijn.
 - [x] Voeg een datumfilter toe.
+- [x] Voeg Now toe voor feesten die al begonnen zijn en nog niet afgelopen zijn, met bekende eindtijd.
 - [x] Zorg dat markers direct reageren op filterwijzigingen.
 - [ ] Test de mobiele weergave.
 
@@ -253,6 +254,7 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 - **Geografie:** start met Nederland, maar ondersteun kaartnavigatie wereldwijd. Breid evenementdekking pas uit als er bronnen beschikbaar zijn.
 - **Genres:** house omvat ook deep house. Bij meerdere geselecteerde genres is één overeenkomst voldoende; zonder selectie zijn alle genres zichtbaar.
 - **Datum/tijd:** filter op de startdatum in `Europe/Amsterdam`. Een feest dat na middernacht eindigt, blijft bij zijn startdatum horen. Vandaag en morgen volgen de Nederlandse kalender. Dit weekend betekent vrijdag t/m zondag van het lopende weekend, of het komende weekend op maandag t/m donderdag. De app houdt de huidige datum bij wanneer hij na middernacht open blijft staan.
+- **Now:** toon alleen feesten waarvoor `starts_at <= nu < ends_at`, ook als ze op de vorige dag begonnen zijn. Zonder bekende eindtijd kan niet worden vastgesteld of een feest nog bezig is; het verschijnt daarom niet in Now. De klok wordt elke 30 seconden en bij terugkeer naar de app bijgewerkt. Bestaande pins en popups blijven behouden zolang het bijbehorende evenement zichtbaar en ongewijzigd blijft.
 - **Meerdere events op één locatie:** bepaal hoe je overlappende pins presenteert.
 - **Schaalbaarheid:** haal later alleen evenementen op binnen het zichtbare kaartgebied en relevante tijdvenster.
 - **Bronrechten:** verifieer toestemming, actualiteit en licentievoorwaarden voordat echte data wordt geïmporteerd.
@@ -262,14 +264,14 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 
 **Huidige stap: fase 3 — datumfilters en mobiele weergave controleren.**
 
-De gebruiker heeft de kaart en het genre-filter werkend bevestigd. Er zijn 20 fictieve feesten in 20 steden, met paarse pins en popups. Het datumfilter biedt alle datums, vandaag, morgen, dit weekend en een zelfgekozen datum en werkt samen met de genreselectie. De teller en pins gebruiken dezelfde gefilterde lijst. Bij nul resultaten kan de gebruiker alle filters wissen. Het filterpaneel is scrollbaar en gebruikt maximaal de helft van de schermhoogte, zodat de kaart zichtbaar blijft.
+De gebruiker heeft de kaart en het genre-filter werkend bevestigd. Er zijn 20 fictieve feesten in 20 steden, met paarse pins en popups. Het datumfilter biedt alle datums, Now (nu bezig), vandaag, morgen, dit weekend en een zelfgekozen datum en werkt samen met de genreselectie. De teller en pins gebruiken dezelfde gefilterde lijst. Bij nul resultaten kan de gebruiker alle filters wissen. Het filterpaneel is scrollbaar en gebruikt maximaal de helft van de schermhoogte, zodat de kaart zichtbaar blijft.
 
-De build en controles van de filterlogica slagen. De datumcontroles omvatten genre-/datumcombinaties, weekenden, middernacht, zomer-/wintertijd, maand-/jaargrenzen en schrikkeldagen. Ze zijn uitgevoerd met Amsterdam en Los Angeles als systeemtijdzone. Visuele controle van het datumfilter en testen op een telefoon staan nog open.
+De build en controles van de filterlogica slagen. De datumcontroles omvatten genre-/datumcombinaties, weekenden, middernacht, zomer-/wintertijd, maand-/jaargrenzen en schrikkeldagen. Now is gecontroleerd op de start- en eindgrens, feesten die na middernacht doorgaan, ontbrekende eindtijden en de wintertijdwisseling. De controles zijn uitgevoerd met Amsterdam en Los Angeles als systeemtijdzone. Visuele controle van het datumfilter en testen op een telefoon staan nog open.
 
 1. Kies Alle genres, daarna Kies een datum en 24 oktober 2026: de teller hoort 4 van 20 aan te geven.
 2. Kies Techno erbij: de teller hoort 2 van 20 aan te geven.
 3. Kies 19 oktober 2026: er zijn geen voorbeeldfeesten; controleer de melding en Wis alle filters.
-4. Controleer Vandaag, Morgen en Dit weekend. De fictieve data loopt van 17 oktober t/m 1 november 2026; daarbuiten kunnen presets terecht nul resultaten tonen.
+4. Controleer Now, Vandaag, Morgen en Dit weekend. De fictieve data loopt van 17 oktober t/m 1 november 2026; daarbuiten kunnen presets terecht nul resultaten tonen. Now kan ook leeg zijn wanneer geen voorbeeldfeest met bekende eindtijd op dit moment bezig is.
 5. Test de mobiele weergave, kaartbediening en popups en commit de werkende wijzigingen.
 
 Resident Advisor is de voorkeursbron voor de API. De gebruiker heeft toestemming gevraagd; in afwachting daarvan blijven we fictieve data gebruiken.

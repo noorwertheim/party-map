@@ -11,6 +11,7 @@ type MapProps = {
 export default function Map({ events }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<MapLibreMap | null>(null);
+  const eventMarkers = useRef(new globalThis.Map<string, { event: PartyEvent; marker: Marker }>());
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -23,6 +24,7 @@ export default function Map({ events }: MapProps) {
     });
 
     mapInstance.current = map;
+    const markers = eventMarkers.current;
     map.addControl(new NavigationControl());
 
     // Pas de kleuren aan zodra de kaartstijl beschikbaar is.
@@ -49,17 +51,30 @@ export default function Map({ events }: MapProps) {
     });
 
     return () => {
+      markers.forEach(({ marker }) => marker.remove());
+      markers.clear();
       map.remove();
       mapInstance.current = null;
     };
   }, []);
 
-  // Alleen de pins veranderen bij een filterwijziging; de kaart blijft staan.
+  // Behoud bestaande pins en popups wanneer de klok of filters veranderen.
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
 
-    const markers = events.map((event) => {
+    const markers = eventMarkers.current;
+    const visibleEvents = new Set(events);
+    for (const [id, entry] of markers) {
+      if (!visibleEvents.has(entry.event)) {
+        entry.marker.remove();
+        markers.delete(id);
+      }
+    }
+
+    for (const event of events) {
+      if (markers.has(event.id)) continue;
+
       const popup = new Popup({ maxWidth: "300px", className: "event-popup-container" })
         .setDOMContent(createEventPopup(event));
 
@@ -70,10 +85,8 @@ export default function Map({ events }: MapProps) {
 
       marker.getElement().setAttribute("aria-label", `${event.name} in ${event.city}`);
       marker.getElement().setAttribute("title", `${event.name} · ${event.city}`);
-      return marker;
-    });
-
-    return () => markers.forEach((marker) => marker.remove());
+      markers.set(event.id, { event, marker });
+    }
   }, [events]);
 
   return <div ref={mapContainer} className="event-map" aria-label="Kaart met fictieve feesten in Nederland" />;

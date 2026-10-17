@@ -42,11 +42,20 @@ export function filterEventsByGenres(
 export function filterEventsByDate(
   events: readonly PartyEvent[],
   dateFilter: DateFilter,
-  today = getAmsterdamDate(),
+  now = new Date(),
 ): PartyEvent[] {
   if (dateFilter.kind === "all") return [...events];
 
-  let firstDay = calendarDay(today);
+  if (dateFilter.kind === "now") {
+    const timestamp = now.getTime();
+    return events.filter((event) =>
+      event.ends_at !== undefined &&
+      Date.parse(event.starts_at) <= timestamp &&
+      timestamp < Date.parse(event.ends_at),
+    );
+  }
+
+  let firstDay = calendarDay(getAmsterdamDate(now));
   let lastDay = firstDay;
 
   if (dateFilter.kind === "tomorrow") {

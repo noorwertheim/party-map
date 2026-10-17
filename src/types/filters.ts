@@ -1,3 +1,3 @@
 export type DateFilter =
-  | { kind: "all" | "today" | "tomorrow" | "weekend" }
+  | { kind: "all" | "now" | "today" | "tomorrow" | "weekend" }
   | { kind: "custom"; date: string };

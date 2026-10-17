@@ -66,6 +66,7 @@ export default function EventFilters({
               }}
             >
               <option value="all">Alle datums</option>
+              <option value="now">Now — nu bezig</option>
               <option value="today">Vandaag</option>
               <option value="tomorrow">Morgen</option>
               <option value="weekend">Dit weekend</option>
@@ -85,7 +86,11 @@ export default function EventFilters({
             </label>
           )}
         </div>
-        <p className="filter-help">De startdatum in Nederland telt. Weekend: vrijdag t/m zondag.</p>
+        <p className="filter-help">
+          {dateFilter.kind === "now"
+            ? "Al begonnen en nog niet afgelopen. Alleen feesten met een bekende eindtijd."
+            : "De startdatum in Nederland telt. Weekend: vrijdag t/m zondag."}
+        </p>
       </fieldset>
       {!hasResults && (
         <div className="empty-results">
