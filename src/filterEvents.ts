@@ -1,16 +1,21 @@
 import type { Event as PartyEvent, Genre } from "./types/event";
 import type { DateFilter } from "./types/filters";
+import type { EventQuery } from "./services/eventProvider";
 
 const dayInMilliseconds = 24 * 60 * 60 * 1000;
-const amsterdamDateFormat = new Intl.DateTimeFormat("en", {
-  timeZone: "Europe/Amsterdam",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
 export function getAmsterdamDate(date = new Date()): string {
-  const parts = amsterdamDateFormat.formatToParts(date);
+  return getLocalDate(date, "Europe/Amsterdam");
+}
+
+export function getLocalDate(date = new Date(), timeZone = "Europe/Amsterdam"): string {
+  let formatter = dateFormats.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+    dateFormats.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const year = parts.find((part) => part.type === "year")!.value;
   const month = parts.find((part) => part.type === "month")!.value;
   const day = parts.find((part) => part.type === "day")!.value;
@@ -24,6 +29,33 @@ function calendarDay(date: string): number {
   if (!Number.isFinite(timestamp)) return NaN;
   if (new Date(timestamp).toISOString().slice(0, 10) !== date) return NaN;
   return timestamp / dayInMilliseconds;
+}
+
+export function getEventQuery(dateFilter: DateFilter, now = new Date(), timeZone = "Europe/Amsterdam"): EventQuery | null {
+  const today = calendarDay(getLocalDate(now, timeZone));
+  let first = today;
+  let last = today;
+  if (dateFilter.kind === "all") {
+    first -= 1;
+    last += 7;
+  } else if (dateFilter.kind === "now") {
+    first -= 1;
+  } else if (dateFilter.kind === "tomorrow") {
+    first += 1;
+    last = first;
+  } else if (dateFilter.kind === "weekend") {
+    const weekday = new Date(today * dayInMilliseconds).getUTCDay();
+    first += weekday === 0 ? -2 : weekday === 6 ? -1 : 5 - weekday;
+    last = first + 2;
+  } else if (dateFilter.kind === "custom") {
+    first = calendarDay(dateFilter.date);
+    last = first;
+  }
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+  return {
+    from: new Date(first * dayInMilliseconds).toISOString().slice(0, 10),
+    to: new Date(last * dayInMilliseconds).toISOString().slice(0, 10),
+  };
 }
 
 export function filterEventsByGenres(
@@ -43,6 +75,7 @@ export function filterEventsByDate(
   events: readonly PartyEvent[],
   dateFilter: DateFilter,
   now = new Date(),
+  timeZone = "Europe/Amsterdam",
 ): PartyEvent[] {
   if (dateFilter.kind === "all") return [...events];
 
@@ -55,7 +88,7 @@ export function filterEventsByDate(
     );
   }
 
-  let firstDay = calendarDay(getAmsterdamDate(now));
+  let firstDay = calendarDay(getLocalDate(now, timeZone));
   let lastDay = firstDay;
 
   if (dateFilter.kind === "tomorrow") {
@@ -73,7 +106,7 @@ export function filterEventsByDate(
   }
 
   return events.filter((event) => {
-    const startDay = calendarDay(getAmsterdamDate(new Date(event.starts_at)));
+    const startDay = calendarDay(getLocalDate(new Date(event.starts_at), timeZone));
     return startDay >= firstDay && startDay <= lastDay;
   });
 }

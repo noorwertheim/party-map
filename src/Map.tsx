@@ -136,5 +136,5 @@ export default function Map({ events, location }: MapProps) {
     }
   }, [events]);
 
-  return <div ref={mapContainer} className="event-map" aria-label="Map of demo events in the Netherlands" />;
+  return <div ref={mapContainer} className="event-map" aria-label="Map of music events" />;
 }

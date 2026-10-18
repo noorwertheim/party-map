@@ -1,7 +1,6 @@
-import { genreOptions } from "../genres";
 import type { Genre } from "../types/event";
 import type { DateFilter } from "../types/filters";
-import { getAmsterdamDate } from "../filterEvents";
+import { getLocalDate } from "../filterEvents";
 
 type EventFiltersProps = {
   selectedGenres: Genre[];
@@ -11,6 +10,9 @@ type EventFiltersProps = {
   onDateFilterChange: (filter: DateFilter) => void;
   onResetAll: () => void;
   hasResults: boolean;
+  genreOptions: { value: Genre; label: string }[];
+  showEmptyState: boolean;
+  timeZone: string;
 };
 
 export default function EventFilters({
@@ -21,6 +23,9 @@ export default function EventFilters({
   onDateFilterChange,
   onResetAll,
   hasResults,
+  genreOptions,
+  showEmptyState,
+  timeZone,
 }: EventFiltersProps) {
   return (
     <section className="filters-panel" aria-labelledby="filters-title">
@@ -61,7 +66,7 @@ export default function EventFilters({
               onChange={(event) => {
                 const kind = event.target.value as DateFilter["kind"];
                 onDateFilterChange(kind === "custom"
-                  ? { kind, date: getAmsterdamDate() }
+                  ? { kind, date: getLocalDate(new Date(), timeZone) }
                   : { kind });
               }}
             >
@@ -89,10 +94,10 @@ export default function EventFilters({
         <p className="filter-help">
           {dateFilter.kind === "now"
             ? "Events currently in progress. Only events with a known end time."
-            : "Dates use the event start time in the Netherlands. Weekend: Friday to Sunday."}
+            : `Dates use local time in ${timeZone}. Weekend: Friday to Sunday.`}
         </p>
       </fieldset>
-      {!hasResults && (
+      {showEmptyState && !hasResults && (
         <div className="empty-results">
           <p role="status">
             {dateFilter.kind === "custom" && !dateFilter.date

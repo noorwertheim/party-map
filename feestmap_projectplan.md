@@ -4,7 +4,7 @@
 
 Feestmap is een eenvoudige, mobile-first kaartapp voor het ontdekken van feesten en clubavonden. Het concept lijkt op Party Atlas: gebruikers zien direct **waar** feesten plaatsvinden en kunnen filteren op **muziekgenre** en **datum**.
 
-De app start met evenementen in heel Nederland, maar de architectuur moet later ook andere landen ondersteunen. De kaart is het centrale onderdeel, niet een lange lijst met evenementen.
+De app ondersteunt locatiezoeken wereldwijd en start met de kaart van Amsterdam. De lokale Party Atlas-koppeling zoekt het evenementengebied bij de gekozen coördinaten; daadwerkelijke dekking hangt af van de bron. De kaart is het centrale onderdeel, niet een lange lijst met evenementen.
 
 ### Productprincipes
 
@@ -70,7 +70,7 @@ De door de ontwikkelaar bekeken voorbeeldresponse heeft `data.eventListings.data
 
 - Vraag Party Atlas om toestemming voor herhaald ophalen, opslag en weergave van data in Feestmap. RA-rechten kunnen daarnaast van toepassing zijn.
 - Behandel dit endpoint als ongedocumenteerd en veranderlijk; geen gegarandeerde beschikbaarheid, volledigheid of gebruiksrechten.
-- Totdat toestemming duidelijk is: werk met de reeds handmatig verkregen voorbeeldresponse als lokale fixture; automatiseer geen herhaalde requests of publieke doorlevering.
+- Voor publieke builds blijft de lokale fixture de standaard totdat toestemming duidelijk is. Op expliciet verzoek van de ontwikkelaar kan de live-adapter uitsluitend in de lokale Vite-ontwikkelmodus worden ingeschakeld voor verkenning; dit stelt niet vast of het gebruik is toegestaan. Geen publieke doorlevering of achtergrondpolling.
 - Als toestemming volgt, implementeer toegang achter een adapter, met redelijke caching, foutafhandeling en zonder omzeiling van toegangsbeperkingen.
 - Bouw een fallback naar fixtures en later een eigen gelicentieerde bron.
 
@@ -162,13 +162,13 @@ Verwijder eventueel beperkende standaardstijlen uit `src/App.css` (of verwijder 
 
 ### Fase 3 — Events tonen via een vervangbare adapter (ca. 1 dag)
 
-- [ ] Definieer `FeestmapEvent` in `src/types/event.ts` (id, naam, locatie, datum/tijd, genres, coördinaten, bron-URL).
-- [ ] Sla de eerder handmatig bekeken Party Atlas-JSON lokaal op als `src/data/partyAtlasSample.json` (of gebruik fictieve data).
-- [ ] Maak `src/services/normalizePartyAtlas.ts` om `data.eventListings.data[].event` om te zetten naar `FeestmapEvent[]`.
-- [ ] Maak `src/services/getEvents.ts` met een bronkeuze (`fixture` als standaard, `partyAtlas` pas na toestemming).
-- [ ] Voeg markers toe met popups voor naam, venue, datum, genres en bronlink.
-- [ ] Voeg filters voor datum en genres toe, onafhankelijk van de gekozen bron.
-- [ ] Test lege resultaten, ontbrekende genres/line-ups, ontbrekende coördinaten en events na middernacht.
+- [x] Definieer `FeestmapEvent` in `src/types/event.ts` (id, naam, locatie, datum/tijd, genres, coördinaten, bron-URL).
+- [x] Sla een gecontroleerde Party Atlas-response lokaal op als `src/data/partyAtlasSample.json` (drie events op 19 oktober 2026).
+- [x] Maak `src/services/normalizePartyAtlas.ts` om `data.eventListings.data[].event` om te zetten naar `FeestmapEvent[]`.
+- [x] Maak `src/services/getEvents.ts` met een bronkeuze (`fixture` als standaard; `partyAtlas` expliciet lokaal inschakelbaar, productie blijft fixture).
+- [x] Voeg markers toe met popups voor naam, venue, datum, genres en bronlink.
+- [x] Voeg filters voor datum en genres toe, onafhankelijk van de gekozen bron.
+- [x] Test lege resultaten, ontbrekende genres/line-ups, ontbrekende coördinaten en events na middernacht.
 - [ ] Controleer de mobiele weergave.
 
 **Voorbeeld van de externe response (ingekort):**
@@ -309,9 +309,9 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 
 ## 7. Belangrijkste ontwerpkeuzes en open vragen
 
-- **Geografie:** start met Nederland, maar ondersteun kaartnavigatie wereldwijd. Breid evenementdekking pas uit als er bronnen beschikbaar zijn.
+- **Geografie:** zoeken en kaartnavigatie werken wereldwijd. Een gekozen zoekresultaat bepaalt via Party Atlas `/api/resolve-area` welk evenementengebied wordt geladen. Een onbekend gebied krijgt een expliciete dekkingsmelding; er worden geen gebieds-ID's geraden. Een landzoekopdracht laadt het brongebied rond de zoekcoördinaten, niet alle evenementen van het land. Alleen pannen verandert het brongebied niet.
 - **Genres:** bepaal hoe subgenres aan hoofdgenres gekoppeld worden (bijv. deep house onder house).
-- **Datum/tijd:** sla tijdstippen op met tijdzone; let op feesten die na middernacht doorgaan.
+- **Datum/tijd:** sla tijdstippen op met tijdzone; datumfilters volgen de lokale kalender van de gekozen locatie. Tijdzonebepaling gebeurt lokaal op basis van coördinaten. Popups tonen de lokale tijd van de venue. Let op feesten na middernacht en zomer-/wintertijd.
 - **Meerdere events op één locatie:** bepaal hoe je overlappende pins presenteert.
 - **Schaalbaarheid:** haal later alleen evenementen op binnen het zichtbare kaartgebied en relevante tijdvenster.
 - **Bronrechten:** Party Atlas is de beoogde prototypebron, maar structureel gebruik en publicatie vereisen passende toestemming; de lokale fixture is de standaard totdat dit is opgehelderd.
@@ -321,17 +321,21 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 
 ## 8. Eerstvolgende actie
 
-**Huidige stap: fase 2 — MapLibre toevoegen.**
+**Huidige stap: fase 3 — vervangbare datalaag en lokale Party Atlas-koppeling controleren.**
 
-1. Controleer dat de Vite-app lokaal draait.
-2. Installeer `maplibre-gl`.
-3. Voeg `src/Map.tsx` toe met de kaart van Nederland.
-4. Vervang `src/App.tsx` en pas de CSS aan.
-5. Start `npm run dev` en controleer dat de kaart werkt.
-6. Commit de werkende kaart.
+De kaart start in Amsterdam, de interface is Engels en locatiezoeken verplaatst de kaart én kiest wereldwijd een evenementengebied. Evenementen lopen via `getEvents()` en een `EventProvider`-interface. De oorspronkelijke 20 fictieve evenementen blijven beschikbaar via bron `demo`.
+
+De ontwikkelaar heeft lokale API-verkenning gevraagd terwijl toestemming nog niet is vastgesteld. In de genegeerde `.env.local` staat daarom `VITE_EVENT_PROVIDER=partyAtlas`. Deze bron werkt alleen met `npm run dev`; een productiebuild gebruikt altijd de opgeslagen Party Atlas-fixture. Zonder lokale instelling is `fixture` de standaard. Bron en fallback zijn zichtbaar in de interface; een geldige lege API-response wordt niet door voorbeelden vervangen.
+
+De initiële bron is area 29 (Amsterdam). Na locatiezoeken worden de coördinaten via `/api/resolve-area` naar het brongebied vertaald; London (13) en Tokyo (27) zijn gecontroleerd met echte responses. Gebiedslookups worden 24 uur gecachet. Eventrequests gebruiken het gekozen lokale datumvenster, met vijf minuten cache per locatie/tijdzone/datumbereik, gedeelde gelijktijdige requests en tien seconden timeout. Alle datums omvat gisteren tot en met zeven dagen vooruit; Now vraagt ook gisteren op. Ontbrekende coördinaten of ongeldige starttijden worden overgeslagen, extra genres blijven filterbaar en tijdstippen zonder offset worden als lokale venue-tijd geïnterpreteerd. Buiten de opgeslagen Amsterdamse voorbeeldregio worden bij fouten geen Amsterdamse voorbeeldpins getoond.
+
+1. Herstart Vite na een wijziging van `.env.local` en controleer de bronvermelding.
+2. Kies 19 oktober 2026 om de drie gecontroleerde evenementen te bekijken.
+3. Controleer genre-/datumfilters, bronlinks en locatiezoeken op telefoon en desktop.
+4. Regel toegangsvoorwaarden en onderzoek dekking/paginering voordat structureel of publiek livegebruik wordt toegevoegd.
 
 **Eerste mijlpaal:** een interactieve kaart van Nederland in de browser.
 
 **Tweede mijlpaal:** de handmatig verkregen Party Atlas-voorbeelddata (aangevuld met fixtures) als klikbare pins, met werkende genre- en datumfilters.
 
-**Parallelle actie:** vraag Party Atlas en zo nodig Resident Advisor naar toestemming en eventuele voorwaarden voor live API-gebruik; pas daarna automatische requests inschakelen.
+**Parallelle actie:** vraag Party Atlas en zo nodig Resident Advisor naar toestemming en eventuele voorwaarden voor structureel/publiek API-gebruik. De huidige koppeling blijft beperkt tot lokale ontwikkeling.

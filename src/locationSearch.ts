@@ -1,7 +1,8 @@
-export type LocationResult = {
-  name: string;
+import type { EventLocation } from "./types/location";
+import { timeZoneAt } from "./timeZones";
+
+export type LocationResult = EventLocation & {
   description: string;
-  center: [number, number];
   bounds?: [number, number, number, number];
   zoom: number;
 };
@@ -45,6 +46,7 @@ function parseLocation(feature: unknown): LocationResult | null {
     name,
     description,
     center: [coordinates[0], coordinates[1]],
+    timeZone: timeZoneAt([coordinates[0], coordinates[1]]),
     zoom: properties.osm_value === "country" ? 5
       : properties.osm_value === "state" ? 8
       : ["city", "town", "village"].includes(text(properties.osm_value)) ? 12 : 16,
