@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Map from "./Map";
 import EventFilters from "./components/EventFilters";
+import LocationSearch from "./components/LocationSearch";
+import type { LocationResult } from "./locationSearch";
 import { events } from "./data/events";
 import { filterEventsByDate, filterEventsByGenres } from "./filterEvents";
 import type { Genre } from "./types/event";
@@ -10,6 +12,7 @@ function App() {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>({ kind: "all" });
   const [now, setNow] = useState(() => new Date());
+  const [location, setLocation] = useState<LocationResult | null>(null);
   const visibleEvents = filterEventsByDate(
     filterEventsByGenres(events, selectedGenres),
     dateFilter,
@@ -39,13 +42,16 @@ function App() {
 
   return (
     <main className="app">
-      <header className="map-intro">
-        <h1>Feestmap</h1>
-        <p aria-live="polite" aria-atomic="true">
-          {visibleEvents.length} van {events.length} fictieve feesten · tik op een pin
-        </p>
+      <header className="map-header">
+        <div className="map-intro">
+          <h1>Feestmap</h1>
+          <p aria-live="polite" aria-atomic="true">
+            {visibleEvents.length} of {events.length} demo events · tap a pin
+          </p>
+        </div>
+        <LocationSearch onSelect={setLocation} />
       </header>
-      <Map events={visibleEvents} />
+      <Map events={visibleEvents} location={location} />
       <EventFilters
         selectedGenres={selectedGenres}
         onToggleGenre={toggleGenre}

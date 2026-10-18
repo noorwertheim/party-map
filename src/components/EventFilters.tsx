@@ -25,13 +25,13 @@ export default function EventFilters({
   return (
     <section className="filters-panel" aria-labelledby="filters-title">
       <div className="filters-heading">
-        <h2 id="filters-title">Muziekgenre</h2>
+        <h2 id="filters-title">Genre</h2>
         <button type="button" onClick={onReset} disabled={selectedGenres.length === 0}>
-          Alle genres
+          All genres
         </button>
       </div>
       <fieldset className="genre-filters">
-        <legend className="visually-hidden">Kies één of meer muziekgenres</legend>
+        <legend className="visually-hidden">Choose one or more music genres</legend>
         <div className="genre-options">
           {genreOptions.map(({ value, label }) => (
             <label
@@ -49,12 +49,12 @@ export default function EventFilters({
           ))}
         </div>
       </fieldset>
-      <p className="filter-help">Meerdere keuzes mogelijk. House is inclusief deep house.</p>
+      <p className="filter-help">Select multiple genres. House includes deep house.</p>
       <fieldset className="date-filters">
-        <legend>Datum</legend>
+        <legend>Date</legend>
         <div className="date-options">
           <label className="date-field" htmlFor="date-period">
-            Wanneer?
+            When?
             <select
               id="date-period"
               value={dateFilter.kind}
@@ -65,17 +65,17 @@ export default function EventFilters({
                   : { kind });
               }}
             >
-              <option value="all">Alle datums</option>
-              <option value="now">Now — nu bezig</option>
-              <option value="today">Vandaag</option>
-              <option value="tomorrow">Morgen</option>
-              <option value="weekend">Dit weekend</option>
-              <option value="custom">Kies een datum</option>
+              <option value="all">All dates</option>
+              <option value="now">Now — happening now</option>
+              <option value="today">Today</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="weekend">This weekend</option>
+              <option value="custom">Choose a date</option>
             </select>
           </label>
           {dateFilter.kind === "custom" && (
             <label className="date-field" htmlFor="event-date">
-              Welke datum?
+              Which date?
               <input
                 id="event-date"
                 type="date"
@@ -88,19 +88,19 @@ export default function EventFilters({
         </div>
         <p className="filter-help">
           {dateFilter.kind === "now"
-            ? "Al begonnen en nog niet afgelopen. Alleen feesten met een bekende eindtijd."
-            : "De startdatum in Nederland telt. Weekend: vrijdag t/m zondag."}
+            ? "Events currently in progress. Only events with a known end time."
+            : "Dates use the event start time in the Netherlands. Weekend: Friday to Sunday."}
         </p>
       </fieldset>
       {!hasResults && (
         <div className="empty-results">
           <p role="status">
             {dateFilter.kind === "custom" && !dateFilter.date
-              ? "Kies een datum om feesten te bekijken."
-              : "Geen feesten gevonden. Pas je datum of genres aan."}
+              ? "Choose a date to see events."
+              : "No events found. Change the date or genres."}
           </p>
           <button type="button" className="reset-filters" onClick={onResetAll}>
-            Wis alle filters
+            Clear all filters
           </button>
         </div>
       )}

@@ -1,14 +1,20 @@
 import { useEffect, useRef } from "react";
-import { Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
+import { Map as MapLibreMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
+import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { createEventPopup } from "./createEventPopup";
 import type { Event as PartyEvent } from "./types/event";
+import type { LocationResult } from "./locationSearch";
+
+// Laat Vite de worker bundelen die straten, gebouwen en labels verwerkt.
+setWorkerUrl(mapWorkerUrl);
 
 type MapProps = {
   events: readonly PartyEvent[];
+  location: LocationResult | null;
 };
 
-export default function Map({ events }: MapProps) {
+export default function Map({ events, location }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<MapLibreMap | null>(null);
   const eventMarkers = useRef(new globalThis.Map<string, { event: PartyEvent; marker: Marker }>());
@@ -19,17 +25,33 @@ export default function Map({ events }: MapProps) {
     const map = new MapLibreMap({
       container: mapContainer.current,
       style: "https://tiles.openfreemap.org/styles/liberty",
-      center: [5.3, 52.1],
-      zoom: 6.8,
+      center: [4.8952, 52.3702],
+      zoom: 13,
     });
 
     mapInstance.current = map;
     const markers = eventMarkers.current;
     map.addControl(new NavigationControl());
 
-    // Pas de kleuren aan zodra de kaartstijl beschikbaar is.
+    // Pas de taal en kleuren aan zodra de kaartstijl beschikbaar is.
     map.on("style.load", () => {
       for (const layer of map.getStyle().layers) {
+        if (layer.type === "symbol") {
+          const textField: unknown = layer.layout?.["text-field"];
+
+          // Vertaal naamlabels; behoud wegnummers en andere codes.
+          if (Array.isArray(textField) && textField.flat(Infinity).includes("name")) {
+            map.setLayoutProperty(layer.id, "text-field", [
+              "coalesce",
+              ["get", "name:en"],
+              ["get", "name_en"],
+              ["get", "name"],
+              ["get", "name:latin"],
+              "",
+            ]);
+          }
+        }
+
         if (layer.type === "background") {
           map.setPaintProperty(layer.id, "background-color", "#f1eee8");
         }
@@ -57,6 +79,31 @@ export default function Map({ events }: MapProps) {
       mapInstance.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !location) return;
+
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1_000;
+    // Houd de gekozen plek op mobiel boven het filterpaneel zichtbaar.
+    const viewport = map.getContainer().getBoundingClientRect();
+    const header = map.getContainer().parentElement?.querySelector(".map-header")?.getBoundingClientRect();
+    const filters = map.getContainer().parentElement?.querySelector(".filters-panel")?.getBoundingClientRect();
+    const offset: [number, number] = [0, viewport.width <= 760 && header && filters
+      ? (header.bottom + filters.top) / 2 - (viewport.top + viewport.height / 2)
+      : 0];
+    if (location.bounds) {
+      const [west, south, east, north] = location.bounds;
+      map.fitBounds([[west, south], [east, north]], {
+        padding: 60,
+        maxZoom: 16,
+        offset,
+        duration,
+      });
+    } else {
+      map.flyTo({ center: location.center, zoom: location.zoom, duration, offset });
+    }
+  }, [location]);
 
   // Behoud bestaande pins en popups wanneer de klok of filters veranderen.
   useEffect(() => {
@@ -89,5 +136,5 @@ export default function Map({ events }: MapProps) {
     }
   }, [events]);
 
-  return <div ref={mapContainer} className="event-map" aria-label="Kaart met fictieve feesten in Nederland" />;
+  return <div ref={mapContainer} className="event-map" aria-label="Map of demo events in the Netherlands" />;
 }

@@ -1,6 +1,6 @@
 import type { Event as PartyEvent } from "./types/event";
 
-const dateTimeFormat = new Intl.DateTimeFormat("nl-NL", {
+const dateTimeFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "full",
   timeStyle: "short",
   timeZone: "Europe/Amsterdam",
@@ -12,7 +12,7 @@ export function createEventPopup(event: PartyEvent): HTMLElement {
 
   const demoLabel = document.createElement("p");
   demoLabel.className = "event-popup-demo";
-  demoLabel.textContent = "Fictief voorbeeldfeest";
+  demoLabel.textContent = "Fictional demo event";
 
   const title = document.createElement("h2");
   title.textContent = event.name;
@@ -40,7 +40,7 @@ export function createEventPopup(event: PartyEvent): HTMLElement {
     const endTime = document.createElement("time");
     endTime.dateTime = event.ends_at;
     endTime.textContent = dateTimeFormat.format(new Date(event.ends_at));
-    end.append("Einde: ", endTime);
+    end.append("End: ", endTime);
     content.append(end);
   }
 
@@ -53,7 +53,7 @@ export function createEventPopup(event: PartyEvent): HTMLElement {
       link.href = url.href;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "Tickets / organisator";
+      link.textContent = "Tickets / organiser";
       content.append(link);
     }
   }

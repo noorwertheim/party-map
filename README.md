@@ -1,5 +1,7 @@
 # React + TypeScript + Vite
 
+Location search uses the [Photon API](https://github.com/komoot/photon) when the user submits the search form. Results use English names where available and selecting one moves the map without changing event filters. No API key is needed for the prototype. Photon’s public demo service has no availability guarantee and may throttle heavy use; use a hosted or private instance before scaling up. To change the endpoint, set `VITE_GEOCODING_URL` to a Photon-compatible `/api/` URL in `.env.local` and restart Vite (or rebuild for production).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

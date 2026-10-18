@@ -12,7 +12,7 @@ De app start met evenementen in heel Nederland, maar de architectuur moet later 
 - **Map-first:** de kaart is het startscherm.
 - **Snel filteren:** genre en datum bepalen welke pins zichtbaar zijn.
 - **Mobielvriendelijk:** eerst een responsive webapp, eventueel later een installeerbare PWA of native app.
-- **Betrouwbare gegevens:** toon alleen evenementen uit bronnen die hergebruik toestaan.
+- **Vervangbare databron:** voor het lokale prototype onderzoeken we de Party Atlas API; voor structureel of publiek hergebruik regelen we eerst toestemming en een duurzame bron.
 
 ### MVP-functionaliteiten
 
@@ -20,7 +20,7 @@ De app start met evenementen in heel Nederland, maar de architectuur moet later 
 2. Pins voor evenementen op basis van lengte- en breedtegraad.
 3. Klik/tik op een pin voor naam, locatie, datum, tijd, genres en link naar tickets of organisator.
 4. Filter op muziekgenre (bijv. house, techno, disco, drum & bass).
-5. Filter op datum (Now/nu bezig, vandaag, morgen, weekend of specifieke datum).
+5. Filter op datum (vandaag, morgen, weekend of specifieke datum).
 6. Responsive layout voor telefoon en desktop.
 
 **Bewust buiten de MVP:** gebruikersaccounts, vrienden, chats, reviews, aanbevelingsalgoritmen, betalingen en notificaties.
@@ -46,13 +46,34 @@ Dit zijn producthypothesen, geen bewezen voordelen. Vergelijk de dekking, snelhe
 | Ontwikkeltool | Vite | Lokale server en productiebuild |
 | Kaartbibliotheek | MapLibre GL JS | Interactieve kaart, markers en popups |
 | Kaarttegels/stijl | OpenFreeMap voor prototype | Kaartweergave zonder API-key; controleer voorwaarden voor productie |
-| Data-import (later) | Python | Evenementen ophalen, opschonen en normaliseren |
+| Prototype-eventbron (voorwaardelijk) | Party Atlas `/api/ra-events` | RA-evenementgegevens verkennen; hergebruik alleen waar toegestaan |
+| Data-adapter | TypeScript `getEvents()` | Party Atlas-response omzetten naar eigen eventmodel; later eenvoudig wisselen |
+| Data-import (later) | Python | Toegestane bronnen ophalen, opschonen en normaliseren |
 | Backend (optioneel, later) | FastAPI | Eigen API indien nodig |
 | Database (later) | Supabase / PostgreSQL | Evenementen opslaan en ophalen |
 | Frontendhosting (later) | Cloudflare Pages | Publiceren van webapp |
 | Versiebeheer | Private GitHub- of GitLab-repository | Code beheren |
 
-**Architectuurkeuze:** begin zonder eigen backend of database. Gebruik eerst lokale fictieve JSON-data; voeg pas infrastructuur toe wanneer echte data beschikbaar is.
+**Architectuurkeuze:** begin zonder eigen backend of database. Gebruik een `getEvents()`-adapter met lokale JSON als veilige fallback en een **optionele Party Atlas-adapter voor verkenning wanneer toegang en gebruik zijn toegestaan**. Een publieke deployment mag niet stilzwijgend afhankelijk worden van Party Atlas. Voeg pas infrastructuur toe wanneer nodig.
+
+### Party Atlas: prototypebron (status: toestemming nog niet vastgesteld)
+
+Tijdens inspectie van de webapp is dit publiek bereikbaar ogende endpoint gevonden:
+
+```text
+GET https://partyatlas.app/api/ra-events?areaId=29&from=2026-10-19&to=2026-10-19
+```
+
+De door de ontwikkelaar bekeken voorbeeldresponse heeft `data.eventListings.data` met per item een `event`, plus `totalResults`. De events bevatten onder andere `id`, `title`, `startTime`, `endTime`, `venue.location.latitude/longitude`, `genres`, `artists`, `images` en `contentUrl`. `areaId=29` correspondeert in dit voorbeeld met Amsterdam. De response heeft `access-control-allow-origin: *`, maar **CORS is geen licentie**. Party Atlas draait blijkens de responseheaders achter Fly.io; dat bewijst niet hoe hun backend RA-data ophaalt.
+
+**Randvoorwaarden:**
+
+- Vraag Party Atlas om toestemming voor herhaald ophalen, opslag en weergave van data in Feestmap. RA-rechten kunnen daarnaast van toepassing zijn.
+- Behandel dit endpoint als ongedocumenteerd en veranderlijk; geen gegarandeerde beschikbaarheid, volledigheid of gebruiksrechten.
+- Totdat toestemming duidelijk is: werk met de reeds handmatig verkregen voorbeeldresponse als lokale fixture; automatiseer geen herhaalde requests of publieke doorlevering.
+- Als toestemming volgt, implementeer toegang achter een adapter, met redelijke caching, foutafhandeling en zonder omzeiling van toegangsbeperkingen.
+- Bouw een fallback naar fixtures en later een eigen gelicentieerde bron.
+
 
 ## 4. Stappenplan
 
@@ -76,12 +97,12 @@ Controleer of de standaard Vite-pagina opent op de URL die de terminal toont (me
 
 ### Fase 2 — Kaart toevoegen (ca. 3–6 uur)
 
-- [x] MapLibre installeren.
-- [x] `src/Map.tsx` maken.
-- [x] Kaart centreren op Nederland.
-- [x] Zoom- en navigatieknoppen toevoegen.
-- [x] De standaard Vite-pagina vervangen door de kaart.
-- [x] CSS aanpassen zodat de kaart het scherm vult.
+- [ ] MapLibre installeren.
+- [ ] `src/Map.tsx` maken.
+- [ ] Kaart centreren op Nederland.
+- [ ] Zoom- en navigatieknoppen toevoegen.
+- [ ] De standaard Vite-pagina vervangen door de kaart.
+- [ ] CSS aanpassen zodat de kaart het scherm vult.
 - [ ] Op desktop en telefoon testen.
 
 ```bash
@@ -139,51 +160,85 @@ Verwijder eventueel beperkende standaardstijlen uit `src/App.css` (of verwijder 
 
 **Acceptatiecriterium:** een volledig schermvullende, interactieve kaart van Nederland waarop je kunt pannen en zoomen.
 
-### Fase 3 — Fictieve evenementen en filters (ca. 1 dag)
+### Fase 3 — Events tonen via een vervangbare adapter (ca. 1 dag)
 
-- [x] Maak `src/data/events.ts` met circa 20 fictieve evenementen in meerdere Nederlandse steden.
-- [x] Definieer een TypeScript-type `Event` met ID, naam, venue, stad, starttijd, eindtijd (optioneel), genres, coördinaten en URL (optioneel).
-- [x] Toon elk evenement als marker op de kaart.
-- [x] Toon een popup/detailkaart bij een klik.
-- [x] Voeg een genre-filter toe; meerdere genres kunnen selecteerbaar zijn.
-- [x] Voeg een datumfilter toe.
-- [x] Voeg Now toe voor feesten die al begonnen zijn en nog niet afgelopen zijn, met bekende eindtijd.
-- [x] Zorg dat markers direct reageren op filterwijzigingen.
-- [ ] Test de mobiele weergave.
+- [ ] Definieer `FeestmapEvent` in `src/types/event.ts` (id, naam, locatie, datum/tijd, genres, coördinaten, bron-URL).
+- [ ] Sla de eerder handmatig bekeken Party Atlas-JSON lokaal op als `src/data/partyAtlasSample.json` (of gebruik fictieve data).
+- [ ] Maak `src/services/normalizePartyAtlas.ts` om `data.eventListings.data[].event` om te zetten naar `FeestmapEvent[]`.
+- [ ] Maak `src/services/getEvents.ts` met een bronkeuze (`fixture` als standaard, `partyAtlas` pas na toestemming).
+- [ ] Voeg markers toe met popups voor naam, venue, datum, genres en bronlink.
+- [ ] Voeg filters voor datum en genres toe, onafhankelijk van de gekozen bron.
+- [ ] Test lege resultaten, ontbrekende genres/line-ups, ontbrekende coördinaten en events na middernacht.
+- [ ] Controleer de mobiele weergave.
 
-Voorbeeld van een fictief evenement:
+**Voorbeeld van de externe response (ingekort):**
 
 ```json
 {
-  "id": "event-001",
-  "name": "Saturday House Session",
-  "venue": "Club Example",
-  "city": "Amsterdam",
-  "starts_at": "2026-10-24T23:00:00+02:00",
-  "genres": ["house", "deep-house"],
-  "latitude": 52.37,
-  "longitude": 4.89,
-  "ticket_url": "https://example.com/tickets"
+  "data": {
+    "eventListings": {
+      "data": [
+        {
+          "event": {
+            "id": "2524671",
+            "title": "Hard Mondays Amsterdam - HARD TECHNO NIGHT",
+            "startTime": "2026-10-19T23:00:00.000",
+            "endTime": "2026-10-20T04:00:00.000",
+            "contentUrl": "/events/2524671",
+            "venue": {
+              "name": "John Doe",
+              "location": { "latitude": 52.366478, "longitude": 4.897596 }
+            },
+            "genres": [{ "name": "Hardcore" }, { "name": "Industrial" }]
+          }
+        }
+      ],
+      "totalResults": 3
+    }
+  }
 }
 ```
 
-**Acceptatiecriterium:** de kaart toont fictieve feesten in verschillende steden en genre-/datumfilters veranderen de zichtbare pins correct.
+Dit fragment is een **fixture/schema-voorbeeld**, niet een aanbeveling om de externe endpoint automatisch te bevragen. Gebruik bij voorkeur `venue.location` voor de marker en valideer coördinaten; `venue.lat/lng` zijn alternatieve velden die soms licht afwijken. De RA-datums bevatten in het voorbeeld geen expliciete tijdzone: interpreteer die niet automatisch als UTC en test de tijdzoneconversie expliciet.
 
-### Fase 4 — Echte evenementdata (ca. 1–3 dagen of langer)
+**Aanbevolen adapterinterface:**
 
-- [x] Vraag Resident Advisor om toestemming/API-toegang (aangevraagd door de gebruiker).
-- [ ] Bevestig toegang en afspraken voor ophalen en weergeven; toestemming is nog niet bevestigd.
-- [ ] Onderzoek welke organisatoren, ticketplatforms of evenementenplatforms een officiële API, feed of toestemming voor hergebruik bieden.
-- [ ] Vergelijk dekking en voorwaarden van verschillende bronnen.
-- [ ] Maak een uniform datamodel en genre-taxonomie.
-- [ ] Bouw een Python-importscript voor de gekozen bron(nen).
-- [ ] Zet adressen zo nodig via geocoding om in coördinaten.
-- [ ] Verwijder dubbele evenementen en leg de herkomst vast.
-- [ ] Controleer actualiteit, annuleringen en ontbrekende gegevens.
+```ts
+export type FeestmapEvent = {
+  id: string;
+  name: string;
+  venue: string;
+  startsAt: string;
+  endsAt?: string;
+  genres: string[];
+  latitude: number;
+  longitude: number;
+  sourceUrl?: string;
+};
 
-**Belangrijk:** Resident Advisor heeft een onofficiële GraphQL-endpoint, maar dat is niet automatisch een toegestane of stabiele databron. Gebruik geautomatiseerde toegang en herpublicatie alleen met de benodigde toestemming en conform de voorwaarden. Ook PartyPilot heeft voor zover onderzocht geen publiek gedocumenteerde API. Bouw geen productieafhankelijkheid op ongedocumenteerde endpoints zonder toestemming.
+export async function getEvents(): Promise<FeestmapEvent[]> {
+  // MVP: lees en normaliseer een lokale fixture.
+  // Later: vervang de implementatie door een toegestane API/backend.
+  return [];
+}
+```
 
-**Acceptatiecriterium:** minstens één legitieme bron levert betrouwbaar en herhaalbaar echte evenementen.
+**Acceptatiecriterium:** de kaart toont evenementen uit de lokale Party Atlas-voorbeeldstructuur en de genre-/datumfilters werken; wisselen van databron vereist geen aanpassing aan kaartcomponenten.
+
+### Fase 4 — Party Atlas-toegang toetsen en echte data koppelen (doorlooptijd onzeker)
+
+- [ ] Neem contact op met Party Atlas over toegestane API-toegang, weergave, caching, attributie, rate limits en eventuele kosten.
+- [ ] Verifieer of ook toestemming/licenties van Resident Advisor nodig zijn.
+- [ ] Leg schriftelijke toestemming en gebruiksvoorwaarden vast voordat je structureel ophaalt of publiek herpubliceert.
+- [ ] Indien toegestaan: implementeer een `partyAtlas`-provider achter `getEvents()`; gebruik een serverproxy als secrets of gecontroleerde caching nodig zijn.
+- [ ] Voeg timeouts, responsevalidatie, lege-resultaat-afhandeling en een fixture-fallback toe.
+- [ ] Beperk requests tot benodigde datumvensters en ondersteunde `areaId`-waarden; ga niet uit van automatische dekking van heel Nederland.
+- [ ] Ontwerp een alternatief met rechtstreekse feeds van clubs, organisatoren of officiële evenement-API's.
+- [ ] Voeg bronmetadata en deduplicatie toe wanneer meerdere bronnen beschikbaar komen.
+
+**Belangrijk:** de Party Atlas API is geen officieel aangeboden, gedocumenteerd developerproduct voor Feestmap. Een `200 OK` of `access-control-allow-origin: *` geeft geen toestemming voor hergebruik. Als toestemming uitblijft, blijf bij fixtures en stap over op een toegestane bron.
+
+**Acceptatiecriterium:** minimaal één toegestane bron levert herhaalbaar echte evenementen, zonder dat frontend en filters aan die bron gekoppeld zijn.
 
 ### Fase 5 — Opslag en automatische updates (ca. 1–2 dagen)
 
@@ -218,7 +273,7 @@ Een aparte FastAPI-backend is **optioneel**. Als de frontend veilig rechtstreeks
 | Frontendhosting | €0 lokaal | Vaak gratis instapniveau |
 | Database/backend | Niet nodig | Gratis tier of betaald |
 | Domeinnaam | Niet nodig | Indicatief €1–€2/maand |
-| Evenementdata | Fictieve data €0 | Licentie/voorwaarden nog onbekend |
+| Evenementdata | Lokale voorbeeldfixture €0 | Party Atlas/RA-toestemming en eventuele licentie onbekend |
 | Apple Developer | Niet nodig | $99/jaar voor App Store-publicatie |
 | Google Play | Niet nodig | $25 eenmalig voor ontwikkelaarsregistratie |
 
@@ -235,7 +290,10 @@ feestmap/
 │   │   ├── EventPopup.tsx
 │   │   └── EventFilters.tsx
 │   ├── data/
-│   │   └── events.ts
+│   │   └── partyAtlasSample.json
+│   ├── services/
+│   │   ├── getEvents.ts
+│   │   └── normalizePartyAtlas.ts
 │   ├── types/
 │   │   └── event.ts
 │   ├── App.tsx
@@ -252,30 +310,28 @@ Dit is een groeirichting, geen structuur die direct helemaal moet worden aangema
 ## 7. Belangrijkste ontwerpkeuzes en open vragen
 
 - **Geografie:** start met Nederland, maar ondersteun kaartnavigatie wereldwijd. Breid evenementdekking pas uit als er bronnen beschikbaar zijn.
-- **Genres:** house omvat ook deep house. Bij meerdere geselecteerde genres is één overeenkomst voldoende; zonder selectie zijn alle genres zichtbaar.
-- **Datum/tijd:** filter op de startdatum in `Europe/Amsterdam`. Een feest dat na middernacht eindigt, blijft bij zijn startdatum horen. Vandaag en morgen volgen de Nederlandse kalender. Dit weekend betekent vrijdag t/m zondag van het lopende weekend, of het komende weekend op maandag t/m donderdag. De app houdt de huidige datum bij wanneer hij na middernacht open blijft staan.
-- **Now:** toon alleen feesten waarvoor `starts_at <= nu < ends_at`, ook als ze op de vorige dag begonnen zijn. Zonder bekende eindtijd kan niet worden vastgesteld of een feest nog bezig is; het verschijnt daarom niet in Now. De klok wordt elke 30 seconden en bij terugkeer naar de app bijgewerkt. Bestaande pins en popups blijven behouden zolang het bijbehorende evenement zichtbaar en ongewijzigd blijft.
+- **Genres:** bepaal hoe subgenres aan hoofdgenres gekoppeld worden (bijv. deep house onder house).
+- **Datum/tijd:** sla tijdstippen op met tijdzone; let op feesten die na middernacht doorgaan.
 - **Meerdere events op één locatie:** bepaal hoe je overlappende pins presenteert.
 - **Schaalbaarheid:** haal later alleen evenementen op binnen het zichtbare kaartgebied en relevante tijdvenster.
-- **Bronrechten:** verifieer toestemming, actualiteit en licentievoorwaarden voordat echte data wordt geïmporteerd.
+- **Bronrechten:** Party Atlas is de beoogde prototypebron, maar structureel gebruik en publicatie vereisen passende toestemming; de lokale fixture is de standaard totdat dit is opgehelderd.
+- **Party Atlas-bereik:** `areaId` is gebiedsgebonden; een kaart van heel Nederland betekent nog niet dat de gekozen bron landelijke eventdata levert.
+- **Afhankelijkheid:** zorg dat `getEvents()` kan omschakelen naar een andere provider zonder wijzigingen in UI of kaart.
 - **Privacy:** geen accounts of locatiepermissies nodig voor de MVP.
 
 ## 8. Eerstvolgende actie
 
-**Huidige stap: fase 3 — datumfilters en mobiele weergave controleren.**
+**Huidige stap: fase 2 — MapLibre toevoegen.**
 
-De gebruiker heeft de kaart en het genre-filter werkend bevestigd. Er zijn 20 fictieve feesten in 20 steden, met paarse pins en popups. Het datumfilter biedt alle datums, Now (nu bezig), vandaag, morgen, dit weekend en een zelfgekozen datum en werkt samen met de genreselectie. De teller en pins gebruiken dezelfde gefilterde lijst. Bij nul resultaten kan de gebruiker alle filters wissen. Het filterpaneel is scrollbaar en gebruikt maximaal de helft van de schermhoogte, zodat de kaart zichtbaar blijft.
-
-De build en controles van de filterlogica slagen. De datumcontroles omvatten genre-/datumcombinaties, weekenden, middernacht, zomer-/wintertijd, maand-/jaargrenzen en schrikkeldagen. Now is gecontroleerd op de start- en eindgrens, feesten die na middernacht doorgaan, ontbrekende eindtijden en de wintertijdwisseling. De controles zijn uitgevoerd met Amsterdam en Los Angeles als systeemtijdzone. Visuele controle van het datumfilter en testen op een telefoon staan nog open.
-
-1. Kies Alle genres, daarna Kies een datum en 24 oktober 2026: de teller hoort 4 van 20 aan te geven.
-2. Kies Techno erbij: de teller hoort 2 van 20 aan te geven.
-3. Kies 19 oktober 2026: er zijn geen voorbeeldfeesten; controleer de melding en Wis alle filters.
-4. Controleer Now, Vandaag, Morgen en Dit weekend. De fictieve data loopt van 17 oktober t/m 1 november 2026; daarbuiten kunnen presets terecht nul resultaten tonen. Now kan ook leeg zijn wanneer geen voorbeeldfeest met bekende eindtijd op dit moment bezig is.
-5. Test de mobiele weergave, kaartbediening en popups en commit de werkende wijzigingen.
-
-Resident Advisor is de voorkeursbron voor de API. De gebruiker heeft toestemming gevraagd; in afwachting daarvan blijven we fictieve data gebruiken.
+1. Controleer dat de Vite-app lokaal draait.
+2. Installeer `maplibre-gl`.
+3. Voeg `src/Map.tsx` toe met de kaart van Nederland.
+4. Vervang `src/App.tsx` en pas de CSS aan.
+5. Start `npm run dev` en controleer dat de kaart werkt.
+6. Commit de werkende kaart.
 
 **Eerste mijlpaal:** een interactieve kaart van Nederland in de browser.
 
-**Tweede mijlpaal:** 20 fictieve feesten met klikbare pins en werkende genre- en datumfilters.
+**Tweede mijlpaal:** de handmatig verkregen Party Atlas-voorbeelddata (aangevuld met fixtures) als klikbare pins, met werkende genre- en datumfilters.
+
+**Parallelle actie:** vraag Party Atlas en zo nodig Resident Advisor naar toestemming en eventuele voorwaarden voor live API-gebruik; pas daarna automatische requests inschakelen.
